@@ -1,5 +1,0 @@
--- Update existing columns with default values
-ALTER TABLE game_sessions
-    MODIFY COLUMN completed BOOLEAN NOT NULL DEFAULT FALSE,
-    MODIFY COLUMN score INT NOT NULL DEFAULT 0,
-    MODIFY COLUMN created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP; 
