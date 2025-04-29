@@ -103,4 +103,151 @@ Once the application is running, you can access the Swagger UI at:
 - inviteCode (String)
 
 ## Contributing
-Feel free to submit issues and enhancement requests! 
+Feel free to submit issues and enhancement requests!
+
+## API Documentation
+
+### Authentication
+
+All API endpoints (except registration) require a JWT token in the Authorization header:
+```
+Authorization: Bearer <your_jwt_token>
+```
+
+### Game Endpoints
+
+#### Start a New Game
+```bash
+curl --location 'http://localhost:8080/api/game/start' \
+--header 'Authorization: Bearer <your_jwt_token>'
+```
+
+Response:
+```json
+{
+    "sessionId": 1,
+    "clues": [
+        "I am an iron lady standing tall in a city of love.",
+        "Built in 1889, I was once the world's tallest structure.",
+        "My nighttime sparkle is protected by copyright law."
+    ],
+    "options": [
+        {
+            "id": 1,
+            "name": "Eiffel Tower",
+            "country": "France"
+        },
+        {
+            "id": 2,
+            "name": "Taj Mahal",
+            "country": "India"
+        },
+        {
+            "id": 3,
+            "name": "Great Wall of China",
+            "country": "China"
+        },
+        {
+            "id": 4,
+            "name": "Statue of Liberty",
+            "country": "United States"
+        }
+    ],
+    "difficulty": "MEDIUM"
+}
+```
+
+#### Submit Answer
+```bash
+curl --location 'http://localhost:8080/api/game/1/submit' \
+--header 'Authorization: Bearer <your_jwt_token>' \
+--header 'Content-Type: application/json' \
+--data '{
+    "destinationId": 1
+}'
+```
+
+Response:
+```json
+{
+    "correct": true,
+    "funFacts": [
+        "The tower was originally intended to be a temporary structure.",
+        "It takes 60 tons of paint to protect the tower from rust.",
+        "The tower grows up to 6 inches taller in summer due to thermal expansion."
+    ],
+    "destinationName": "Eiffel Tower",
+    "destinationCountry": "France",
+    "imageUrl": "https://example.com/eiffel.jpg",
+    "userScore": 10,
+    "totalGamesPlayed": 1,
+    "description": "This iconic wrought-iron lattice tower is located on the Champ de Mars in Paris."
+}
+```
+
+#### Get Game Question
+```bash
+curl --location 'http://localhost:8080/api/game/1' \
+--header 'Authorization: Bearer <your_jwt_token>'
+```
+
+Response: Same as start game response
+
+### User Endpoints
+
+#### Register User
+```bash
+curl --location 'http://localhost:8080/api/users/register' \
+--header 'Content-Type: application/json' \
+--data '{
+    "username": "john",
+    "email": "john@example.com"
+}'
+```
+
+Response:
+```json
+{
+    "id": 1,
+    "username": "john",
+    "email": "john@example.com",
+    "totalScore": 0,
+    "gamesPlayed": 0,
+    "correctAnswers": 0,
+    "incorrectAnswers": 0
+}
+```
+
+#### Get User Details
+```bash
+curl --location 'http://localhost:8080/api/users/john' \
+--header 'Authorization: Bearer <your_jwt_token>'
+```
+
+Response: Same as registration response
+
+## Game Rules
+
+1. Each game presents a random destination with multiple clues
+2. Players must guess the correct destination from 4 options
+3. Points are awarded for correct answers
+4. The game tracks user statistics including:
+   - Total score
+   - Games played
+   - Correct/incorrect answers
+
+## Setup
+
+1. Clone the repository
+2. Configure database in `application.properties`
+3. Run the application
+4. The database will be automatically initialized with sample destinations
+
+## Technologies Used
+
+- Spring Boot
+- Spring Security
+- JWT Authentication
+- MySQL
+- Flyway (Database Migrations)
+- Lombok 
