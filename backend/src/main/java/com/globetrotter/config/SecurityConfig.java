@@ -33,6 +33,7 @@ public class SecurityConfig {
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
             .authorizeHttpRequests()
             .requestMatchers(new AntPathRequestMatcher("/api/auth/**")).permitAll()
+            .requestMatchers(new AntPathRequestMatcher("/api/challenges/{inviteCode}")).permitAll()
             .requestMatchers(new AntPathRequestMatcher("/api/game/**")).authenticated()
             .requestMatchers(new AntPathRequestMatcher("/api/challenge/**")).authenticated()
             .anyRequest().permitAll();
