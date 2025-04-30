@@ -22,8 +22,8 @@ public class ChallengeServiceImpl implements ChallengeService {
     @Autowired
     private UserRepository userRepository;
 
-    @Value("${app.challenge.share-url}")
-    private String shareUrl;
+    @Value("${app.base-url}")
+    private String baseUrl;
 
     @Override
     @Transactional
@@ -41,11 +41,11 @@ public class ChallengeServiceImpl implements ChallengeService {
 
         challenge = challengeRepository.save(challenge);
 
-        String challengeUrl = shareUrl + "/challenge/" + challenge.getInviteCode();
+        String shareUrl = baseUrl + "/challenge/" + challenge.getInviteCode();
         
         return new ChallengeResponse(
             challenge.getInviteCode(),
-            challengeUrl,
+            shareUrl,
             challenge.getChallengerScore(),
             challenge.getChallengerCorrectAnswers(),
             challenge.getChallengerIncorrectAnswers()
