@@ -1,49 +1,37 @@
 export interface User {
-    id: number;
+    id: string;
     username: string;
     email: string;
-    totalScore: number;
-    gamesPlayed: number;
-    correctAnswers: number;
-    incorrectAnswers: number;
+    score: number;
 }
 
 export interface Destination {
-    id: number;
+    id: string;
     name: string;
-    country: string;
-    continent: string;
     description: string;
-    clues: string[];
-    funFacts: string[];
     imageUrl: string;
     latitude: number;
     longitude: number;
-    difficulty: string;
+    clues: string[];
+    funFact: string;
 }
 
 export interface GameSession {
-    sessionId: number;
-    clues: string[];
-    options: Array<{
-        id: number;
-        name: string;
-        country: string;
-    }>;
-    difficulty: string;
-    currentDestination: {
-        id: number;
-        name: string;
-        country: string;
-    };
+    id: string;
+    userId: string;
+    currentDestination: Destination;
+    score: number;
+    isComplete: boolean;
+    startTime: string;
+    endTime?: string;
 }
 
-export interface GameState {
-    currentSession: GameSession | null;
-    user: User | null;
-    score: number;
-    isGameOver: boolean;
-    showConfetti: boolean;
-    showFunFacts: boolean;
-    funFacts: string[];
+export interface Challenge {
+    id: string;
+    destinationId: string;
+    creatorId: string;
+    acceptorId?: string;
+    status: 'PENDING' | 'ACCEPTED' | 'COMPLETED';
+    createdAt: string;
+    completedAt?: string;
 } 

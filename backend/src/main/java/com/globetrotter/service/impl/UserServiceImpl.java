@@ -11,6 +11,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -48,7 +49,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public User getUserByInviteCode(String inviteCode) {
         return userRepository.findByInviteCode(inviteCode)
-                .orElseThrow(() -> new RuntimeException("Invalid invite code"));
+                .orElseThrow(() -> new RuntimeException("User not found"));
     }
 
     @Override
@@ -58,9 +59,8 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public User updateUserScore(String username, int score) {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-        user.updateScore(score > 0);
+        User user = getUserByUsername(username);
+        user.setTotalScore(user.getTotalScore() + score);
         return userRepository.save(user);
     }
 
@@ -70,9 +70,14 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
         
         return new org.springframework.security.core.userdetails.User(
-            user.getUsername(),
-            user.getPassword(),
-            Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"))
+                user.getUsername(),
+                user.getPassword(),
+                Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"))
         );
+    }
+
+    @Override
+    public List<User> getLeaderboard() {
+        return userRepository.findAllByOrderByTotalScoreDesc();
     }
 } 

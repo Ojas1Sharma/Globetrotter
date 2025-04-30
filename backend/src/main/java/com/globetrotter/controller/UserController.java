@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -43,5 +44,11 @@ public class UserController {
     public ResponseEntity<Map<String, Boolean>> checkUsername(@RequestParam String username) {
         boolean isAvailable = userService.isUsernameAvailable(username);
         return ResponseEntity.ok(Map.of("available", isAvailable));
+    }
+
+    @GetMapping("/leaderboard")
+    @Operation(summary = "Get leaderboard")
+    public ResponseEntity<List<User>> getLeaderboard() {
+        return ResponseEntity.ok(userService.getLeaderboard());
     }
 } 

@@ -1,49 +1,71 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Button, Typography, Card, CardContent, CardActions, CircularProgress } from '@mui/material';
+import { Box, Typography, Button, Card, CardContent, CircularProgress } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
 import ReactConfetti from 'react-confetti';
 import { gameService } from '../services/api';
 import { userService } from '../services/api';
 
-type GameSession = Awaited<ReturnType<typeof gameService.startNewGame>> & {
+interface Option {
+    id: number;
+    name: string;
+    country: string;
+}
+
+interface GameSession {
+    sessionId: number;
+    clues: string[];
+    options: Option[];
+    difficulty: string;
     currentDestination?: {
         id: number;
         name: string;
         country: string;
     };
-};
+}
 
 interface GameState {
     currentSession: GameSession | null;
-    score: number;
     isGameOver: boolean;
     showConfetti: boolean;
     showFunFacts: boolean;
     funFacts: string[];
+    score: number;
     currentClueIndex: number;
+    correctAnswer?: {
+        name: string;
+        country: string;
+    };
 }
 
 const Game: React.FC = () => {
     const [gameState, setGameState] = useState<GameState>({
         currentSession: null,
-        score: 0,
         isGameOver: false,
         showConfetti: false,
         showFunFacts: false,
         funFacts: [],
-        currentClueIndex: 0,
+        score: 0,
+        currentClueIndex: 0
     });
-    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        startNewGame();
+        // Initialize score from backend
+        const initializeScore = async () => {
+            try {
+                const { score } = await userService.getScore();
+                setGameState(prev => ({ ...prev, score }));
+            } catch (error) {
+                console.error('Error fetching initial score:', error);
+            }
+        };
+        initializeScore();
     }, []);
 
     const startNewGame = async () => {
         try {
-            const session = await gameService.startNewGame();
+            const session = await gameService.startGame();
             console.log('New game session:', session);
-            setGameState((prev: GameState) => ({
+            setGameState(prev => ({
                 ...prev,
                 currentSession: session,
                 isGameOver: false,
@@ -51,66 +73,67 @@ const Game: React.FC = () => {
                 showFunFacts: false,
                 funFacts: [],
                 currentClueIndex: 0,
+                correctAnswer: undefined
             }));
-            setLoading(false);
         } catch (error) {
             console.error('Error starting new game:', error);
-            setLoading(false);
         }
     };
 
-    const handleAnswer = async (option: { id: number; name: string; country: string }) => {
+    const handleAnswer = async (option: Option) => {
         if (!gameState.currentSession) return;
 
         try {
-            const result = await gameService.submitAnswer(gameState.currentSession.sessionId, option.id);
+            const result = await gameService.submitAnswer(
+                gameState.currentSession.sessionId.toString(),
+                option.id.toString()
+            );
             console.log('Answer result:', result);
 
-            setGameState((prev: GameState) => ({
+            const newScore = gameState.score + (result.correct ? 100 : 0);
+            
+            // Update score in backend
+            try {
+                await userService.updateScore(newScore);
+            } catch (error) {
+                console.error('Error updating score:', error);
+                // Continue with the game even if score update fails
+            }
+
+            setGameState(prev => ({
                 ...prev,
                 isGameOver: true,
                 showConfetti: result.correct,
                 showFunFacts: true,
                 funFacts: result.funFacts,
-                score: result.userScore,
-                currentSession: {
-                    ...prev.currentSession!,
-                    currentDestination: {
-                        id: option.id,
-                        name: result.destinationName,
-                        country: result.destinationCountry
-                    }
+                score: newScore,
+                correctAnswer: {
+                    name: result.destinationName,
+                    country: result.destinationCountry
                 }
             }));
-
-            // Update the user's score in the backend
-            await userService.updateUserScore(result.userScore);
         } catch (error) {
             console.error('Error submitting answer:', error);
         }
     };
 
-    const handleNextQuestion = async () => {
-        setLoading(true);
-        await startNewGame();
-    };
+    const showNextClue = async () => {
+        if (!gameState.currentSession) return;
 
-    const showNextClue = () => {
-        if (gameState.currentSession && gameState.currentClueIndex < gameState.currentSession.clues.length - 1) {
-            setGameState((prev: GameState) => ({
+        try {
+            const result = await gameService.getClue(gameState.currentSession.sessionId.toString());
+            setGameState(prev => ({
                 ...prev,
                 currentClueIndex: prev.currentClueIndex + 1,
+                currentSession: {
+                    ...prev.currentSession!,
+                    clues: result.clues
+                }
             }));
+        } catch (error) {
+            console.error('Error getting clue:', error);
         }
     };
-
-    if (loading) {
-        return (
-            <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
-                <CircularProgress />
-            </Box>
-        );
-    }
 
     return (
         <Box sx={{ maxWidth: 800, mx: 'auto', p: 3 }}>
@@ -125,88 +148,103 @@ const Game: React.FC = () => {
                 )}
             </AnimatePresence>
 
-            <Card sx={{ mb: 3 }}>
-                <CardContent>
+            {!gameState.currentSession ? (
+                <Box sx={{ textAlign: 'center', mt: 4 }}>
+                    <Typography variant="h4" gutterBottom>
+                        Welcome to Globetrotter!
+                    </Typography>
+                    <Button
+                        variant="contained"
+                        color="primary"
+                        size="large"
+                        onClick={startNewGame}
+                        sx={{ mt: 2 }}
+                    >
+                        Start New Game
+                    </Button>
+                </Box>
+            ) : (
+                <Box>
                     <Typography variant="h5" gutterBottom>
                         Score: {gameState.score}
                     </Typography>
-                    {gameState.currentSession && (
-                        <>
-                            <Typography variant="h6" gutterBottom>
-                                Clue {gameState.currentClueIndex + 1}:
-                            </Typography>
-                            <Typography variant="body1" paragraph>
-                                {gameState.currentSession.clues[gameState.currentClueIndex]}
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary">
-                                Difficulty: {gameState.currentSession.difficulty}
-                            </Typography>
-                        </>
-                    )}
-                </CardContent>
-                <CardActions>
-                    <Button
-                        variant="contained"
-                        color="primary"
-                        onClick={showNextClue}
-                        disabled={!gameState.currentSession || gameState.currentClueIndex >= gameState.currentSession.clues.length - 1}
-                    >
-                        Show Next Clue
-                    </Button>
-                </CardActions>
-            </Card>
 
-            {gameState.currentSession && !gameState.isGameOver && (
-                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 2 }}>
-                    {gameState.currentSession.options.map((option) => (
-                        <motion.div
-                            key={option.id}
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                        >
-                            <Button
-                                variant="contained"
-                                fullWidth
-                                onClick={() => handleAnswer(option)}
-                                sx={{ height: 100 }}
-                            >
-                                {option.name}
-                                <Typography variant="caption" display="block">
-                                    {option.country}
+                    {gameState.currentClueIndex < gameState.currentSession.clues.length ? (
+                        <Card sx={{ mb: 3 }}>
+                            <CardContent>
+                                <Typography variant="h6" gutterBottom>
+                                    Clue {gameState.currentClueIndex + 1}:
                                 </Typography>
-                            </Button>
-                        </motion.div>
-                    ))}
-                </Box>
-            )}
+                                <Typography variant="body1">
+                                    {gameState.currentSession.clues[gameState.currentClueIndex]}
+                                </Typography>
+                                <Button
+                                    variant="contained"
+                                    color="primary"
+                                    onClick={showNextClue}
+                                    sx={{ mt: 2 }}
+                                    disabled={gameState.currentClueIndex === gameState.currentSession.clues.length - 1}
+                                >
+                                    Show Next Clue
+                                </Button>
+                            </CardContent>
+                        </Card>
+                    ) : null}
 
-            {gameState.isGameOver && (
-                <Box sx={{ mt: 3 }}>
-                    <Typography variant="h6" gutterBottom>
-                        {gameState.showConfetti ? 'Correct!' : 'Incorrect!'}
-                    </Typography>
-                    <Typography variant="body1" paragraph>
-                        The answer was: {gameState.currentSession?.currentDestination?.name}
-                    </Typography>
-                    <Typography variant="h6" gutterBottom>
-                        Fun Facts:
-                    </Typography>
-                    {gameState.funFacts.map((fact, index) => (
-                        <Typography key={index} variant="body1" paragraph>
-                            {fact}
-                        </Typography>
-                    ))}
-                    <Typography variant="h6" gutterBottom>
-                        Your Score: {gameState.score}
-                    </Typography>
-                    <Button
-                        variant="contained"
-                        color="primary"
-                        onClick={handleNextQuestion}
-                        sx={{ mt: 2 }}
-                    >
-                        Next Question
-                    </Button>
+                    {gameState.currentSession && !gameState.isGameOver && (
+                        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 2 }}>
+                            {gameState.currentSession.options.map((option) => (
+                                <motion.div
+                                    key={option.id}
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
+                                >
+                                    <Card
+                                        sx={{ cursor: 'pointer' }}
+                                        onClick={() => handleAnswer(option)}
+                                    >
+                                        <CardContent>
+                                            <Typography variant="h6">{option.name}</Typography>
+                                            <Typography color="text.secondary">
+                                                {option.country}
+                                            </Typography>
+                                        </CardContent>
+                                    </Card>
+                                </motion.div>
+                            ))}
+                        </Box>
+                    )}
+
+                    {gameState.isGameOver && gameState.showFunFacts && (
+                        <Card sx={{ mt: 3 }}>
+                            <CardContent>
+                                <Typography variant="h6" gutterBottom>
+                                    {gameState.showConfetti ? 'Correct!' : 'Incorrect!'}
+                                </Typography>
+                                {gameState.correctAnswer && (
+                                    <Typography variant="body1" sx={{ mb: 2 }}>
+                                        The answer was: {gameState.correctAnswer.name}, {gameState.correctAnswer.country}
+                                    </Typography>
+                                )}
+                                <Typography variant="h6" gutterBottom>
+                                    Fun Facts:
+                                </Typography>
+                                {gameState.funFacts.map((fact, index) => (
+                                    <Typography key={index} variant="body1" sx={{ mb: 1 }}>
+                                        {fact}
+                                    </Typography>
+                                ))}
+                                <Button
+                                    variant="contained"
+                                    color="primary"
+                                    onClick={startNewGame}
+                                    sx={{ mt: 2 }}
+                                >
+                                    Next Question
+                                </Button>
+                            </CardContent>
+                        </Card>
+                    )}
                 </Box>
             )}
         </Box>
