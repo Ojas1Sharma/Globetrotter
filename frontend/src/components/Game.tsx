@@ -275,7 +275,7 @@ const Game: React.FC = () => {
                                     onClick={startNewGame}
                                     sx={{ mt: 2 }}
                                 >
-                                    Play Again
+                                    Next
                                 </Button>
                             </CardContent>
                         </Card>
