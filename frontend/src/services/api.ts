@@ -1,10 +1,9 @@
 import axios from 'axios';
 import { User, GameSession, Challenge } from '../types';
-
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8080/api';
+import { config } from '../config/config';
 
 const api = axios.create({
-    baseURL: API_BASE_URL,
+    baseURL: `${config.API_BASE_URL}/api`,
     headers: {
         'Content-Type': 'application/json',
     },
@@ -93,4 +92,6 @@ export const challengeService = {
         const response = await api.post(`/challenge/${challengeId}/accept`);
         return response.data;
     },
-}; 
+};
+
+export default api; 

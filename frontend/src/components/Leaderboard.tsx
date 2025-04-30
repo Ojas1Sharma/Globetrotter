@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     Box,
     Typography,
@@ -14,7 +14,7 @@ import {
     Button
 } from '@mui/material';
 import { motion } from 'framer-motion';
-import { userService } from '../services/api';
+import api from '../services/api';
 
 interface LeaderboardEntry {
     username: string;
@@ -25,31 +25,17 @@ interface LeaderboardEntry {
 }
 
 const Leaderboard: React.FC = () => {
-    const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+    const [users, setUsers] = useState<LeaderboardEntry[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchLeaderboard = async () => {
             try {
-                const response = await fetch('http://localhost:8080/api/users/leaderboard', {
-                    headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`,
-                        'Content-Type': 'application/json'
-                    }
-                });
-                
-                if (!response.ok) {
-                    const errorData = await response.json().catch(() => ({}));
-                    throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
-                }
-                
-                const data = await response.json();
-                console.log('Leaderboard data:', data); // Debug log
-                setLeaderboard(data);
+                const response = await api.get('/users/leaderboard');
+                setUsers(response.data);
             } catch (err) {
-                console.error('Error details:', err); // Debug log
-                setError(err instanceof Error ? err.message : 'Failed to load leaderboard. Please try again later.');
+                setError('Failed to fetch leaderboard');
             } finally {
                 setLoading(false);
             }
@@ -84,7 +70,7 @@ const Leaderboard: React.FC = () => {
         );
     }
 
-    if (leaderboard.length === 0) {
+    if (users.length === 0) {
         return (
             <Box sx={{ textAlign: 'center', mt: 4 }}>
                 <Typography variant="h6" gutterBottom>
@@ -117,22 +103,18 @@ const Leaderboard: React.FC = () => {
                                     <TableCell align="right">Score</TableCell>
                                     <TableCell align="right">Games Played</TableCell>
                                     <TableCell align="right">Correct Answers</TableCell>
-                                    <TableCell align="right">Success Rate</TableCell>
+                                    <TableCell align="right">Incorrect Answers</TableCell>
                                 </TableRow>
                             </TableHead>
                             <TableBody>
-                                {leaderboard.map((entry, index) => (
+                                {users.map((entry: LeaderboardEntry, index: number) => (
                                     <TableRow key={entry.username}>
                                         <TableCell>{index + 1}</TableCell>
                                         <TableCell>{entry.username}</TableCell>
                                         <TableCell align="right">{entry.totalScore}</TableCell>
                                         <TableCell align="right">{entry.gamesPlayed}</TableCell>
                                         <TableCell align="right">{entry.correctAnswers}</TableCell>
-                                        <TableCell align="right">
-                                            {entry.gamesPlayed > 0
-                                                ? `${Math.round((entry.correctAnswers / (entry.correctAnswers + entry.incorrectAnswers)) * 100)}%`
-                                                : 'N/A'}
-                                        </TableCell>
+                                        <TableCell align="right">{entry.incorrectAnswers}</TableCell>
                                     </TableRow>
                                 ))}
                             </TableBody>

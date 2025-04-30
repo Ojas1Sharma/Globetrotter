@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Box, Typography, Button, CircularProgress, Paper, Divider } from '@mui/material';
-import axios from 'axios';
+import api from '../services/api';
 
 interface ChallengeData {
     challenger: {
@@ -22,7 +22,7 @@ const Challenge: React.FC = () => {
     useEffect(() => {
         const fetchChallenge = async () => {
             try {
-                const response = await axios.get(`http://localhost:8080/api/challenges/${inviteCode}`);
+                const response = await api.get(`/challenges/${inviteCode}`);
                 setChallenge(response.data);
             } catch (err) {
                 setError('Challenge not found or has expired');

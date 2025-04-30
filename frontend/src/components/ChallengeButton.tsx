@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Dialog, DialogTitle, DialogContent, DialogActions, Typography, Box, CircularProgress } from '@mui/material';
 import { Share } from '@mui/icons-material';
-import axios from 'axios';
+import api from '../services/api';
 import { QRCodeSVG } from 'qrcode.react';
 
 interface ChallengeButtonProps {
@@ -26,11 +26,7 @@ const ChallengeButton: React.FC<ChallengeButtonProps> = ({ username }) => {
                 return;
             }
             console.log('Creating challenge...');
-            const response = await axios.post('http://localhost:8080/api/challenges', null, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
+            const response = await api.post('/challenges');
             console.log('Challenge created successfully:', response.data);
             setChallengeData(response.data);
             setOpen(true);
