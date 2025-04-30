@@ -22,7 +22,7 @@ const Challenge: React.FC = () => {
     useEffect(() => {
         const fetchChallenge = async () => {
             try {
-                const response = await api.get(`/challenges/${inviteCode}`);
+                const response = await api.get(`/api/challenges/${inviteCode}`);
                 setChallenge(response.data);
             } catch (err) {
                 setError('Challenge not found or has expired');

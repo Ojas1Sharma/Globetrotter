@@ -41,7 +41,7 @@ public class ChallengeServiceImpl implements ChallengeService {
 
         challenge = challengeRepository.save(challenge);
 
-        String shareUrl = baseUrl + "/challenge/" + challenge.getInviteCode();
+        String shareUrl = baseUrl + "/api/challenges/" + challenge.getInviteCode();
         
         return new ChallengeResponse(
             challenge.getInviteCode(),
