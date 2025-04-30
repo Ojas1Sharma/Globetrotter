@@ -53,6 +53,7 @@ const App: React.FC = () => {
           <Route path="/leaderboard" element={isAuthenticated ? <Leaderboard /> : <Navigate to="/auth" replace />} />
           <Route path="/challenge/create" element={isAuthenticated ? <CreateChallengePage /> : <Navigate to="/auth" replace />} />
           <Route path="/challenge/:inviteCode" element={<Challenge />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Router>
     </ThemeProvider>
