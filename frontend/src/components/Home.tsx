@@ -14,10 +14,12 @@ import { useNavigate } from 'react-router-dom';
 import SportsEsportsIcon from '@mui/icons-material/SportsEsports';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import PublicIcon from '@mui/icons-material/Public';
+import ChallengeButton from './ChallengeButton';
 
 const Home: React.FC = () => {
     const navigate = useNavigate();
     const theme = useTheme();
+    const username = localStorage.getItem('username');
 
     const containerVariants = {
         hidden: { opacity: 0 },
@@ -59,7 +61,7 @@ const Home: React.FC = () => {
             icon: <PublicIcon sx={{ fontSize: 40 }} />,
             title: 'Create Challenge',
             description: 'Challenge your friends to beat your score',
-            action: () => navigate('/challenge'),
+            action: () => navigate('/challenge/create'),
             color: '#10b981'
         }
     ];
@@ -171,6 +173,10 @@ const Home: React.FC = () => {
                                 </motion.div>
                             </Box>
                         ))}
+                    </Box>
+
+                    <Box sx={{ mt: 4, display: 'flex', justifyContent: 'center', gap: 2 }}>
+                        {username && <ChallengeButton username={username} />}
                     </Box>
                 </motion.div>
             </Box>

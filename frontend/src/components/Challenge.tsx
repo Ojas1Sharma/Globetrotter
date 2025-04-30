@@ -1,104 +1,133 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import {
-    Container,
-    Paper,
-    Typography,
-    TextField,
-    Button,
-    Box,
-    CircularProgress,
-    Alert,
-} from '@mui/material';
-import { motion } from 'framer-motion';
-import { challengeService } from '../services/api';
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { Box, Typography, Button, CircularProgress, Paper, Divider } from '@mui/material';
+import axios from 'axios';
+
+interface ChallengeData {
+    challenger: {
+        username: string;
+    };
+    challengerScore: number;
+    challengerCorrectAnswers: number;
+    challengerIncorrectAnswers: number;
+}
 
 const Challenge: React.FC = () => {
+    const { inviteCode } = useParams<{ inviteCode: string }>();
     const navigate = useNavigate();
-    const [friendUsername, setFriendUsername] = useState('');
-    const [loading, setLoading] = useState(false);
+    const [challenge, setChallenge] = useState<ChallengeData | null>(null);
+    const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [success, setSuccess] = useState<string | null>(null);
 
-    const handleChallenge = async () => {
-        if (!friendUsername.trim()) {
-            setError('Please enter a username');
-            return;
+    useEffect(() => {
+        const fetchChallenge = async () => {
+            try {
+                const response = await axios.get(`http://localhost:8080/api/challenges/${inviteCode}`);
+                setChallenge(response.data);
+            } catch (err) {
+                setError('Challenge not found or has expired');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        if (inviteCode) {
+            fetchChallenge();
         }
+    }, [inviteCode]);
 
-        setLoading(true);
-        setError(null);
-        setSuccess(null);
-
-        try {
-            const challenge = await challengeService.createChallenge();
-            setSuccess(`Challenge created! Share this code with your friend: ${challenge.inviteCode}`);
-            setTimeout(() => {
-                navigate('/game');
-            }, 3000);
-        } catch (err) {
-            setError('Failed to create challenge. Please try again.');
-        } finally {
-            setLoading(false);
-        }
+    const handleAcceptChallenge = () => {
+        // Store the challenge data in localStorage for the game to use
+        localStorage.setItem('challengeData', JSON.stringify(challenge));
+        navigate('/game');
     };
 
-    return (
-        <Container maxWidth="sm">
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-            >
-                <Paper elevation={3} sx={{ p: 4, mt: 4 }}>
-                    <Typography variant="h4" component="h1" gutterBottom align="center">
-                        Challenge a Friend
+    if (loading) {
+        return (
+            <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
+                <CircularProgress />
+            </Box>
+        );
+    }
+
+    if (error) {
+        return (
+            <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
+                <Paper elevation={3} sx={{ p: 4, textAlign: 'center', maxWidth: 400 }}>
+                    <Typography variant="h5" color="error" gutterBottom>
+                        {error}
                     </Typography>
-                    <Typography variant="body1" color="text.secondary" paragraph align="center">
-                        Enter your friend's username to start a challenge
-                    </Typography>
-
-                    <Box sx={{ mt: 3 }}>
-                        <TextField
-                            fullWidth
-                            label="Friend's Username"
-                            variant="outlined"
-                            value={friendUsername}
-                            onChange={(e) => setFriendUsername(e.target.value)}
-                            sx={{ mb: 2 }}
-                        />
-
-                        {error && (
-                            <Alert severity="error" sx={{ mb: 2 }}>
-                                {error}
-                            </Alert>
-                        )}
-
-                        {success && (
-                            <Alert severity="success" sx={{ mb: 2 }}>
-                                {success}
-                            </Alert>
-                        )}
-
-                        <motion.div
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                        >
-                            <Button
-                                fullWidth
-                                variant="contained"
-                                color="primary"
-                                size="large"
-                                onClick={handleChallenge}
-                                disabled={loading}
-                            >
-                                {loading ? <CircularProgress size={24} /> : 'Create Challenge'}
-                            </Button>
-                        </motion.div>
-                    </Box>
+                    <Button variant="contained" onClick={() => navigate('/')}>
+                        Go Home
+                    </Button>
                 </Paper>
-            </motion.div>
-        </Container>
+            </Box>
+        );
+    }
+
+    return (
+        <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
+            <Paper elevation={3} sx={{ p: 4, maxWidth: 600, width: '100%' }}>
+                <Typography variant="h4" gutterBottom align="center">
+                    Challenge from {challenge?.challenger?.username}
+                </Typography>
+                <Divider sx={{ my: 2 }} />
+                <Box sx={{ my: 3 }}>
+                    <Typography variant="h6" gutterBottom>
+                        Challenger's Stats:
+                    </Typography>
+                    <Box sx={{ 
+                        display: 'grid', 
+                        gridTemplateColumns: 'repeat(3, 1fr)', 
+                        gap: 2,
+                        textAlign: 'center',
+                        mt: 2
+                    }}>
+                        <Box>
+                            <Typography variant="h4" color="primary">
+                                {challenge?.challengerScore}
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary">
+                                Total Score
+                            </Typography>
+                        </Box>
+                        <Box>
+                            <Typography variant="h4" color="success.main">
+                                {challenge?.challengerCorrectAnswers}
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary">
+                                Correct Answers
+                            </Typography>
+                        </Box>
+                        <Box>
+                            <Typography variant="h4" color="error.main">
+                                {challenge?.challengerIncorrectAnswers}
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary">
+                                Incorrect Answers
+                            </Typography>
+                        </Box>
+                    </Box>
+                </Box>
+                <Box display="flex" justifyContent="center" gap={2} sx={{ mt: 4 }}>
+                    <Button 
+                        variant="contained" 
+                        color="primary" 
+                        size="large"
+                        onClick={handleAcceptChallenge}
+                    >
+                        Accept Challenge
+                    </Button>
+                    <Button 
+                        variant="outlined" 
+                        size="large"
+                        onClick={() => navigate('/')}
+                    >
+                        Cancel
+                    </Button>
+                </Box>
+            </Paper>
+        </Box>
     );
 };
 

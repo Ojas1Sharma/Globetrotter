@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Typography, Button, Card, CardContent, CircularProgress } from '@mui/material';
+import { Box, Typography, Button, Card, CardContent, CircularProgress, Paper } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
 import ReactConfetti from 'react-confetti';
 import { gameService } from '../services/api';
@@ -37,6 +37,15 @@ interface GameState {
     };
 }
 
+interface ChallengeData {
+    challenger: {
+        username: string;
+    };
+    challengerScore: number;
+    challengerCorrectAnswers: number;
+    challengerIncorrectAnswers: number;
+}
+
 const Game: React.FC = () => {
     const [gameState, setGameState] = useState<GameState>({
         currentSession: null,
@@ -47,8 +56,16 @@ const Game: React.FC = () => {
         score: 0,
         currentClueIndex: 0
     });
+    const [challengeData, setChallengeData] = useState<ChallengeData | null>(null);
 
     useEffect(() => {
+        // Check for challenge data
+        const storedChallenge = localStorage.getItem('challengeData');
+        if (storedChallenge) {
+            setChallengeData(JSON.parse(storedChallenge));
+            localStorage.removeItem('challengeData'); // Clear after reading
+        }
+
         // Initialize score from backend
         const initializeScore = async () => {
             try {
@@ -65,16 +82,16 @@ const Game: React.FC = () => {
         try {
             const session = await gameService.startGame();
             console.log('New game session:', session);
-            setGameState(prev => ({
-                ...prev,
+            setGameState({
                 currentSession: session,
                 isGameOver: false,
                 showConfetti: false,
                 showFunFacts: false,
                 funFacts: [],
                 currentClueIndex: 0,
+                score: gameState.score,
                 correctAnswer: undefined
-            }));
+            });
         } catch (error) {
             console.error('Error starting new game:', error);
         }
@@ -148,6 +165,25 @@ const Game: React.FC = () => {
                 )}
             </AnimatePresence>
 
+            {challengeData && (
+                <Paper elevation={2} sx={{ p: 2, mb: 3, bgcolor: 'primary.light', color: 'white' }}>
+                    <Typography variant="h6" gutterBottom>
+                        Challenge from {challengeData.challenger.username}
+                    </Typography>
+                    <Box sx={{ display: 'flex', gap: 3, justifyContent: 'center' }}>
+                        <Typography>
+                            Score to beat: {challengeData.challengerScore}
+                        </Typography>
+                        <Typography>
+                            Correct Answers: {challengeData.challengerCorrectAnswers}
+                        </Typography>
+                        <Typography>
+                            Incorrect Answers: {challengeData.challengerIncorrectAnswers}
+                        </Typography>
+                    </Box>
+                </Paper>
+            )}
+
             {!gameState.currentSession ? (
                 <Box sx={{ textAlign: 'center', mt: 4 }}>
                     <Typography variant="h4" gutterBottom>
@@ -199,48 +235,47 @@ const Game: React.FC = () => {
                                     whileHover={{ scale: 1.05 }}
                                     whileTap={{ scale: 0.95 }}
                                 >
-                                    <Card
-                                        sx={{ cursor: 'pointer' }}
+                                    <Button
+                                        variant="outlined"
+                                        fullWidth
                                         onClick={() => handleAnswer(option)}
+                                        sx={{ height: '100px' }}
                                     >
-                                        <CardContent>
-                                            <Typography variant="h6">{option.name}</Typography>
-                                            <Typography color="text.secondary">
-                                                {option.country}
-                                            </Typography>
-                                        </CardContent>
-                                    </Card>
+                                        {option.name}, {option.country}
+                                    </Button>
                                 </motion.div>
                             ))}
                         </Box>
                     )}
 
-                    {gameState.isGameOver && gameState.showFunFacts && (
+                    {gameState.isGameOver && (
                         <Card sx={{ mt: 3 }}>
                             <CardContent>
                                 <Typography variant="h6" gutterBottom>
                                     {gameState.showConfetti ? 'Correct!' : 'Incorrect!'}
                                 </Typography>
-                                {gameState.correctAnswer && (
-                                    <Typography variant="body1" sx={{ mb: 2 }}>
-                                        The answer was: {gameState.correctAnswer.name}, {gameState.correctAnswer.country}
-                                    </Typography>
-                                )}
-                                <Typography variant="h6" gutterBottom>
-                                    Fun Facts:
+                                <Typography variant="body1" gutterBottom>
+                                    The answer was: {gameState.correctAnswer?.name}, {gameState.correctAnswer?.country}
                                 </Typography>
-                                {gameState.funFacts.map((fact, index) => (
-                                    <Typography key={index} variant="body1" sx={{ mb: 1 }}>
-                                        {fact}
-                                    </Typography>
-                                ))}
+                                {gameState.showFunFacts && (
+                                    <>
+                                        <Typography variant="h6" sx={{ mt: 2 }} gutterBottom>
+                                            Fun Facts:
+                                        </Typography>
+                                        {gameState.funFacts.map((fact, index) => (
+                                            <Typography key={index} variant="body1" gutterBottom>
+                                                • {fact}
+                                            </Typography>
+                                        ))}
+                                    </>
+                                )}
                                 <Button
                                     variant="contained"
                                     color="primary"
                                     onClick={startNewGame}
                                     sx={{ mt: 2 }}
                                 >
-                                    Next Question
+                                    Play Again
                                 </Button>
                             </CardContent>
                         </Card>

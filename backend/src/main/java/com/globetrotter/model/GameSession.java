@@ -46,4 +46,9 @@ public class GameSession {
     
     @Column(name = "submitted_destination_id")
     private Long submittedDestinationId;
+
+    @PrePersist
+    protected void onCreate() {
+        startedAt = LocalDateTime.now();
+    }
 } 
