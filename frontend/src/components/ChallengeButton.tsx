@@ -26,7 +26,7 @@ const ChallengeButton: React.FC<ChallengeButtonProps> = ({ username }) => {
                 return;
             }
             console.log('Creating challenge...');
-            const challengeResponse = await api.post('/api/challenges');
+            const challengeResponse = await api.post(`/api/challenges?username=${encodeURIComponent(username)}`);
             console.log('Challenge created successfully:', challengeResponse.data);
             setChallengeData(challengeResponse.data);
             setOpen(true);
