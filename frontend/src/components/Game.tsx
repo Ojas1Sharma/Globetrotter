@@ -3,20 +3,37 @@ import { Box, Button, Typography, Card, CardContent, CardActions, CircularProgre
 import { motion, AnimatePresence } from 'framer-motion';
 import ReactConfetti from 'react-confetti';
 import { gameService } from '../services/api';
-import { GameState, GameSession } from '../types';
+import { userService } from '../services/api';
+
+type GameSession = Awaited<ReturnType<typeof gameService.startNewGame>> & {
+    currentDestination?: {
+        id: number;
+        name: string;
+        country: string;
+    };
+};
+
+interface GameState {
+    currentSession: GameSession | null;
+    score: number;
+    isGameOver: boolean;
+    showConfetti: boolean;
+    showFunFacts: boolean;
+    funFacts: string[];
+    currentClueIndex: number;
+}
 
 const Game: React.FC = () => {
     const [gameState, setGameState] = useState<GameState>({
         currentSession: null,
-        user: null,
         score: 0,
         isGameOver: false,
         showConfetti: false,
         showFunFacts: false,
         funFacts: [],
+        currentClueIndex: 0,
     });
     const [loading, setLoading] = useState(true);
-    const [currentClueIndex, setCurrentClueIndex] = useState(0);
 
     useEffect(() => {
         startNewGame();
@@ -24,47 +41,66 @@ const Game: React.FC = () => {
 
     const startNewGame = async () => {
         try {
-            setLoading(true);
             const session = await gameService.startNewGame();
-            setGameState(prev => ({
+            console.log('New game session:', session);
+            setGameState((prev: GameState) => ({
                 ...prev,
                 currentSession: session,
                 isGameOver: false,
                 showConfetti: false,
                 showFunFacts: false,
                 funFacts: [],
+                currentClueIndex: 0,
             }));
-            setCurrentClueIndex(0);
+            setLoading(false);
         } catch (error) {
             console.error('Error starting new game:', error);
-        } finally {
             setLoading(false);
         }
     };
 
-    const handleAnswer = async (answer: string) => {
+    const handleAnswer = async (option: { id: number; name: string; country: string }) => {
         if (!gameState.currentSession) return;
 
         try {
-            const result = await gameService.submitAnswer(gameState.currentSession.id, answer);
-            const funFacts = await gameService.getFunFacts(gameState.currentSession.id);
+            const result = await gameService.submitAnswer(gameState.currentSession.sessionId, option.id);
+            console.log('Answer result:', result);
 
-            setGameState(prev => ({
+            setGameState((prev: GameState) => ({
                 ...prev,
                 isGameOver: true,
                 showConfetti: result.correct,
                 showFunFacts: true,
-                funFacts,
-                score: result.score,
+                funFacts: result.funFacts,
+                score: result.userScore,
+                currentSession: {
+                    ...prev.currentSession!,
+                    currentDestination: {
+                        id: option.id,
+                        name: result.destinationName,
+                        country: result.destinationCountry
+                    }
+                }
             }));
+
+            // Update the user's score in the backend
+            await userService.updateUserScore(result.userScore);
         } catch (error) {
             console.error('Error submitting answer:', error);
         }
     };
 
+    const handleNextQuestion = async () => {
+        setLoading(true);
+        await startNewGame();
+    };
+
     const showNextClue = () => {
-        if (gameState.currentSession && currentClueIndex < gameState.currentSession.currentDestination.clues.length - 1) {
-            setCurrentClueIndex(prev => prev + 1);
+        if (gameState.currentSession && gameState.currentClueIndex < gameState.currentSession.clues.length - 1) {
+            setGameState((prev: GameState) => ({
+                ...prev,
+                currentClueIndex: prev.currentClueIndex + 1,
+            }));
         }
     };
 
@@ -97,10 +133,13 @@ const Game: React.FC = () => {
                     {gameState.currentSession && (
                         <>
                             <Typography variant="h6" gutterBottom>
-                                Clue {currentClueIndex + 1}:
+                                Clue {gameState.currentClueIndex + 1}:
                             </Typography>
                             <Typography variant="body1" paragraph>
-                                {gameState.currentSession.currentDestination.clues[currentClueIndex]}
+                                {gameState.currentSession.clues[gameState.currentClueIndex]}
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary">
+                                Difficulty: {gameState.currentSession.difficulty}
                             </Typography>
                         </>
                     )}
@@ -110,7 +149,7 @@ const Game: React.FC = () => {
                         variant="contained"
                         color="primary"
                         onClick={showNextClue}
-                        disabled={!gameState.currentSession || currentClueIndex >= gameState.currentSession.currentDestination.clues.length - 1}
+                        disabled={!gameState.currentSession || gameState.currentClueIndex >= gameState.currentSession.clues.length - 1}
                     >
                         Show Next Clue
                     </Button>
@@ -119,9 +158,9 @@ const Game: React.FC = () => {
 
             {gameState.currentSession && !gameState.isGameOver && (
                 <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 2 }}>
-                    {gameState.currentSession.options.map((option, index) => (
+                    {gameState.currentSession.options.map((option) => (
                         <motion.div
-                            key={index}
+                            key={option.id}
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                         >
@@ -131,7 +170,10 @@ const Game: React.FC = () => {
                                 onClick={() => handleAnswer(option)}
                                 sx={{ height: 100 }}
                             >
-                                {option}
+                                {option.name}
+                                <Typography variant="caption" display="block">
+                                    {option.country}
+                                </Typography>
                             </Button>
                         </motion.div>
                     ))}
@@ -141,6 +183,12 @@ const Game: React.FC = () => {
             {gameState.isGameOver && (
                 <Box sx={{ mt: 3 }}>
                     <Typography variant="h6" gutterBottom>
+                        {gameState.showConfetti ? 'Correct!' : 'Incorrect!'}
+                    </Typography>
+                    <Typography variant="body1" paragraph>
+                        The answer was: {gameState.currentSession?.currentDestination?.name}
+                    </Typography>
+                    <Typography variant="h6" gutterBottom>
                         Fun Facts:
                     </Typography>
                     {gameState.funFacts.map((fact, index) => (
@@ -148,13 +196,16 @@ const Game: React.FC = () => {
                             {fact}
                         </Typography>
                     ))}
+                    <Typography variant="h6" gutterBottom>
+                        Your Score: {gameState.score}
+                    </Typography>
                     <Button
                         variant="contained"
                         color="primary"
-                        onClick={startNewGame}
+                        onClick={handleNextQuestion}
                         sx={{ mt: 2 }}
                     >
-                        Play Again
+                        Next Question
                     </Button>
                 </Box>
             )}

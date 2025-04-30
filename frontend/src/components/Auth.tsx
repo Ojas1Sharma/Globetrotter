@@ -1,140 +1,152 @@
 import React, { useState } from 'react';
-import { Box, Button, TextField, Typography, Card, CardContent, Tabs, Tab } from '@mui/material';
+import { 
+    Box, 
+    Button, 
+    TextField, 
+    Typography, 
+    Paper, 
+    Container,
+    Fade,
+    Alert
+} from '@mui/material';
+import { motion } from 'framer-motion';
 import { authService } from '../services/api';
-import { User } from '../types';
+import { useNavigate } from 'react-router-dom';
 
-interface TabPanelProps {
-    children?: React.ReactNode;
-    index: number;
-    value: number;
-}
-
-const TabPanel: React.FC<TabPanelProps> = ({ children, value, index }) => (
-    <div hidden={value !== index}>
-        {value === index && <Box sx={{ p: 3 }}>{children}</Box>}
-    </div>
-);
-
-const Auth: React.FC<{ onLogin: (user: User) => void }> = ({ onLogin }) => {
-    const [tabValue, setTabValue] = useState(0);
-    const [loginData, setLoginData] = useState({ username: '', password: '' });
-    const [registerData, setRegisterData] = useState({ username: '', email: '', password: '' });
+const Auth: React.FC = () => {
+    const [username, setUsername] = useState('');
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [isRegistering, setIsRegistering] = useState(false);
     const [error, setError] = useState('');
+    const [success, setSuccess] = useState('');
+    const navigate = useNavigate();
 
-    const handleTabChange = (_: React.SyntheticEvent, newValue: number) => {
-        setTabValue(newValue);
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
         setError('');
-    };
+        setSuccess('');
 
-    const handleLogin = async (e: React.FormEvent) => {
-        e.preventDefault();
         try {
-            const { token, user } = await authService.login(loginData.username, loginData.password);
-            localStorage.setItem('token', token);
-            onLogin(user);
+            if (isRegistering) {
+                await authService.register(username, email, password);
+                setSuccess('Registration successful! Please login.');
+                setIsRegistering(false);
+            } else {
+                console.log('Starting login process...');
+                const { token, user } = await authService.login(username, password);
+                console.log('Login successful, token:', token);
+                console.log('Login successful, user:', user);
+                
+                if (!token) {
+                    console.error('No token received from login');
+                    setError('Login failed: No token received');
+                    return;
+                }
+                
+                localStorage.setItem('token', token);
+                console.log('Token stored in localStorage');
+                
+                setSuccess('Login successful!');
+                console.log('Setting success message');
+                
+                // Force a state update to trigger re-render
+                window.dispatchEvent(new Event('storage'));
+                
+                console.log('Navigating to home page...');
+                navigate('/', { replace: true });
+            }
         } catch (error) {
-            setError('Invalid username or password');
-        }
-    };
-
-    const handleRegister = async (e: React.FormEvent) => {
-        e.preventDefault();
-        try {
-            const user = await authService.register(
-                registerData.username,
-                registerData.email,
-                registerData.password
-            );
-            setTabValue(0);
-            setError('');
-        } catch (error) {
-            setError('Registration failed. Please try again.');
+            setError(error instanceof Error ? error.message : 'An error occurred');
         }
     };
 
     return (
-        <Box sx={{ maxWidth: 400, mx: 'auto', mt: 4 }}>
-            <Card>
-                <CardContent>
-                    <Tabs value={tabValue} onChange={handleTabChange} centered>
-                        <Tab label="Login" />
-                        <Tab label="Register" />
-                    </Tabs>
+        <Container maxWidth="sm">
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+            >
+                <Paper elevation={3} sx={{ p: 4, mt: 8, borderRadius: 2 }}>
+                    <Typography variant="h4" component="h1" gutterBottom align="center" sx={{ mb: 4 }}>
+                        {isRegistering ? 'Create Account' : 'Welcome to Globetrotter'}
+                    </Typography>
 
                     {error && (
-                        <Typography color="error" sx={{ mt: 2 }}>
+                        <Alert severity="error" sx={{ mb: 2 }}>
                             {error}
-                        </Typography>
+                        </Alert>
                     )}
 
-                    <TabPanel value={tabValue} index={0}>
-                        <form onSubmit={handleLogin}>
-                            <TextField
-                                fullWidth
-                                label="Username"
-                                value={loginData.username}
-                                onChange={(e) => setLoginData({ ...loginData, username: e.target.value })}
-                                margin="normal"
-                            />
-                            <TextField
-                                fullWidth
-                                label="Password"
-                                type="password"
-                                value={loginData.password}
-                                onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
-                                margin="normal"
-                            />
-                            <Button
-                                type="submit"
-                                variant="contained"
-                                color="primary"
-                                fullWidth
-                                sx={{ mt: 2 }}
-                            >
-                                Login
-                            </Button>
-                        </form>
-                    </TabPanel>
+                    {success && (
+                        <Alert severity="success" sx={{ mb: 2 }}>
+                            {success}
+                        </Alert>
+                    )}
 
-                    <TabPanel value={tabValue} index={1}>
-                        <form onSubmit={handleRegister}>
-                            <TextField
-                                fullWidth
-                                label="Username"
-                                value={registerData.username}
-                                onChange={(e) => setRegisterData({ ...registerData, username: e.target.value })}
-                                margin="normal"
-                            />
+                    <form onSubmit={handleSubmit}>
+                        <TextField
+                            fullWidth
+                            label="Username"
+                            value={username}
+                            onChange={(e) => setUsername(e.target.value)}
+                            margin="normal"
+                            required
+                            autoFocus
+                        />
+
+                        {isRegistering && (
                             <TextField
                                 fullWidth
                                 label="Email"
                                 type="email"
-                                value={registerData.email}
-                                onChange={(e) => setRegisterData({ ...registerData, email: e.target.value })}
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
                                 margin="normal"
+                                required
                             />
-                            <TextField
-                                fullWidth
-                                label="Password"
-                                type="password"
-                                value={registerData.password}
-                                onChange={(e) => setRegisterData({ ...registerData, password: e.target.value })}
-                                margin="normal"
-                            />
-                            <Button
-                                type="submit"
-                                variant="contained"
-                                color="primary"
-                                fullWidth
-                                sx={{ mt: 2 }}
-                            >
-                                Register
-                            </Button>
-                        </form>
-                    </TabPanel>
-                </CardContent>
-            </Card>
-        </Box>
+                        )}
+
+                        <TextField
+                            fullWidth
+                            label="Password"
+                            type="password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            margin="normal"
+                            required
+                        />
+
+                        <Button
+                            type="submit"
+                            variant="contained"
+                            color="primary"
+                            fullWidth
+                            size="large"
+                            sx={{ mt: 3, mb: 2 }}
+                        >
+                            {isRegistering ? 'Register' : 'Login'}
+                        </Button>
+
+                        <Button
+                            variant="text"
+                            color="primary"
+                            fullWidth
+                            onClick={() => {
+                                setIsRegistering(!isRegistering);
+                                setError('');
+                                setSuccess('');
+                            }}
+                        >
+                            {isRegistering 
+                                ? 'Already have an account? Login' 
+                                : "Don't have an account? Register"}
+                        </Button>
+                    </form>
+                </Paper>
+            </motion.div>
+        </Container>
     );
 };
 

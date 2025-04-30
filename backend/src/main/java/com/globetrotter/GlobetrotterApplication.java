@@ -13,7 +13,9 @@ import io.swagger.v3.oas.annotations.info.Info;
         description = "API endpoints for the Globetrotter travel guessing game"
     )
 )
+
 public class GlobetrotterApplication {
+    
     public static void main(String[] args) {
         SpringApplication.run(GlobetrotterApplication.class, args);
     }

@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { Destination, GameSession, User, Challenge } from '../types';
 
-const API_BASE_URL = 'http://localhost:8080/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
 
 const api = axios.create({
     baseURL: API_BASE_URL,
@@ -20,17 +20,31 @@ api.interceptors.request.use((config) => {
 });
 
 export const gameService = {
-    startNewGame: async (): Promise<GameSession> => {
+    startNewGame: async (): Promise<{
+        sessionId: number;
+        clues: string[];
+        options: Array<{
+            id: number;
+            name: string;
+            country: string;
+        }>;
+        difficulty: string;
+    }> => {
         const response = await api.post('/game/start');
         return response.data;
     },
 
-    submitAnswer: async (gameSessionId: number, answer: string): Promise<{
+    submitAnswer: async (gameSessionId: number, destinationId: number): Promise<{
         correct: boolean;
         funFacts: string[];
-        score: number;
+        destinationName: string;
+        destinationCountry: string;
+        imageUrl: string;
+        userScore: number;
+        totalGamesPlayed: number;
+        description: string;
     }> => {
-        const response = await api.post(`/game/${gameSessionId}/submit`, { answer });
+        const response = await api.post(`/game/${gameSessionId}/submit`, { destinationId });
         return response.data;
     },
 
@@ -59,12 +73,14 @@ export const challengeService = {
 
 export const authService = {
     login: async (username: string, password: string): Promise<{ token: string; user: User }> => {
-        const response = await api.post('/auth/login', { username, password });
+        console.log('Attempting login for user:', username);
+        const response = await api.post(`/auth/login?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`);
+        console.log('Login response:', response.data);
         return response.data;
     },
 
     register: async (username: string, email: string, password: string): Promise<User> => {
-        const response = await api.post('/auth/register', { username, email, password });
+        const response = await api.post(`/users/register?username=${encodeURIComponent(username)}&email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`);
         return response.data;
     },
 
@@ -72,4 +88,27 @@ export const authService = {
         const response = await api.get('/auth/me');
         return response.data;
     },
+};
+
+export const userService = {
+    register: async (username: string, password: string) => {
+        const response = await axios.post(`${API_BASE_URL}/api/users/register`, {
+            username,
+            password
+        });
+        return response.data;
+    },
+    login: async (username: string, password: string) => {
+        const response = await axios.post(`${API_BASE_URL}/api/users/login`, {
+            username,
+            password
+        });
+        return response.data;
+    },
+    updateUserScore: async (score: number) => {
+        const response = await axios.put(`${API_BASE_URL}/api/users/score`, {
+            score
+        });
+        return response.data;
+    }
 }; 

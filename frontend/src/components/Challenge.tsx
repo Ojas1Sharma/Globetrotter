@@ -1,107 +1,104 @@
 import React, { useState } from 'react';
-import { Box, Button, Typography, Card, CardContent, TextField, Snackbar } from '@mui/material';
-import { Share as ShareIcon } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
+import {
+    Container,
+    Paper,
+    Typography,
+    TextField,
+    Button,
+    Box,
+    CircularProgress,
+    Alert,
+} from '@mui/material';
+import { motion } from 'framer-motion';
 import { challengeService } from '../services/api';
-import { Challenge as ChallengeType } from '../types';
 
 const Challenge: React.FC = () => {
-    const [challenge, setChallenge] = useState<ChallengeType | null>(null);
-    const [inviteCode, setInviteCode] = useState('');
-    const [snackbar, setSnackbar] = useState({ open: false, message: '' });
+    const navigate = useNavigate();
+    const [friendUsername, setFriendUsername] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [success, setSuccess] = useState<string | null>(null);
 
-    const createChallenge = async () => {
-        try {
-            const newChallenge = await challengeService.createChallenge();
-            setChallenge(newChallenge);
-            setSnackbar({ open: true, message: 'Challenge created successfully!' });
-        } catch (error) {
-            setSnackbar({ open: true, message: 'Error creating challenge' });
+    const handleChallenge = async () => {
+        if (!friendUsername.trim()) {
+            setError('Please enter a username');
+            return;
         }
-    };
 
-    const acceptChallenge = async () => {
+        setLoading(true);
+        setError(null);
+        setSuccess(null);
+
         try {
-            const gameSession = await challengeService.acceptChallenge(inviteCode);
-            setSnackbar({ open: true, message: 'Challenge accepted! Starting game...' });
-            // Redirect to game with the session
-            window.location.href = `/game/${gameSession.id}`;
-        } catch (error) {
-            setSnackbar({ open: true, message: 'Error accepting challenge' });
-        }
-    };
-
-    const shareChallenge = () => {
-        if (challenge) {
-            const shareUrl = `${window.location.origin}/challenge/${challenge.inviteCode}`;
-            navigator.clipboard.writeText(shareUrl);
-            setSnackbar({ open: true, message: 'Challenge link copied to clipboard!' });
+            const challenge = await challengeService.createChallenge();
+            setSuccess(`Challenge created! Share this code with your friend: ${challenge.inviteCode}`);
+            setTimeout(() => {
+                navigate('/game');
+            }, 3000);
+        } catch (err) {
+            setError('Failed to create challenge. Please try again.');
+        } finally {
+            setLoading(false);
         }
     };
 
     return (
-        <Box sx={{ maxWidth: 600, mx: 'auto', p: 3 }}>
-            <Card sx={{ mb: 3 }}>
-                <CardContent>
-                    <Typography variant="h5" gutterBottom>
+        <Container maxWidth="sm">
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+            >
+                <Paper elevation={3} sx={{ p: 4, mt: 4 }}>
+                    <Typography variant="h4" component="h1" gutterBottom align="center">
                         Challenge a Friend
                     </Typography>
-                    <Button
-                        variant="contained"
-                        color="primary"
-                        onClick={createChallenge}
-                        sx={{ mb: 2 }}
-                    >
-                        Create New Challenge
-                    </Button>
-
-                    {challenge && (
-                        <Box sx={{ mt: 2 }}>
-                            <Typography variant="body1" gutterBottom>
-                                Share this challenge with your friends:
-                            </Typography>
-                            <Button
-                                variant="outlined"
-                                startIcon={<ShareIcon />}
-                                onClick={shareChallenge}
-                                sx={{ mt: 1 }}
-                            >
-                                Share Challenge
-                            </Button>
-                        </Box>
-                    )}
-                </CardContent>
-            </Card>
-
-            <Card>
-                <CardContent>
-                    <Typography variant="h6" gutterBottom>
-                        Accept a Challenge
+                    <Typography variant="body1" color="text.secondary" paragraph align="center">
+                        Enter your friend's username to start a challenge
                     </Typography>
-                    <TextField
-                        fullWidth
-                        label="Enter Challenge Code"
-                        value={inviteCode}
-                        onChange={(e) => setInviteCode(e.target.value)}
-                        sx={{ mb: 2 }}
-                    />
-                    <Button
-                        variant="contained"
-                        color="secondary"
-                        onClick={acceptChallenge}
-                        disabled={!inviteCode}
-                    >
-                        Accept Challenge
-                    </Button>
-                </CardContent>
-            </Card>
 
-            <Snackbar
-                open={snackbar.open}
-                autoHideDuration={3000}
-                onClose={() => setSnackbar({ ...snackbar, open: false })}
-                message={snackbar.message}
-            />
-        </Box>
+                    <Box sx={{ mt: 3 }}>
+                        <TextField
+                            fullWidth
+                            label="Friend's Username"
+                            variant="outlined"
+                            value={friendUsername}
+                            onChange={(e) => setFriendUsername(e.target.value)}
+                            sx={{ mb: 2 }}
+                        />
+
+                        {error && (
+                            <Alert severity="error" sx={{ mb: 2 }}>
+                                {error}
+                            </Alert>
+                        )}
+
+                        {success && (
+                            <Alert severity="success" sx={{ mb: 2 }}>
+                                {success}
+                            </Alert>
+                        )}
+
+                        <motion.div
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                        >
+                            <Button
+                                fullWidth
+                                variant="contained"
+                                color="primary"
+                                size="large"
+                                onClick={handleChallenge}
+                                disabled={loading}
+                            >
+                                {loading ? <CircularProgress size={24} /> : 'Create Challenge'}
+                            </Button>
+                        </motion.div>
+                    </Box>
+                </Paper>
+            </motion.div>
+        </Container>
     );
 };
 

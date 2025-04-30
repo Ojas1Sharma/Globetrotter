@@ -8,6 +8,7 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
@@ -19,6 +20,9 @@ public class AuthServiceImpl implements AuthService {
     @Autowired
     private UserService userService;
 
+    @Autowired
+    private BCryptPasswordEncoder passwordEncoder;
+
     @Value("${jwt.secret}")
     private String jwtSecret;
 
@@ -26,8 +30,11 @@ public class AuthServiceImpl implements AuthService {
     private long jwtExpiration;
 
     @Override
-    public String login(String username) {
+    public String login(String username, String password) {
         User user = userService.getUserByUsername(username);
+        if (!passwordEncoder.matches(password, user.getPassword())) {
+            throw new RuntimeException("Invalid password");
+        }
         return generateToken(user);
     }
 

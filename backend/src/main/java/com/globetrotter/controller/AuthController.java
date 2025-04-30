@@ -16,8 +16,10 @@ public class AuthController {
     private AuthService authService;
 
     @PostMapping("/login")
-    public ResponseEntity<Map<String, Object>> login(@RequestParam String username) {
-        String token = authService.login(username);
+    public ResponseEntity<Map<String, Object>> login(
+            @RequestParam String username,
+            @RequestParam String password) {
+        String token = authService.login(username, password);
         User user = authService.getUserByUsername(username);
         return ResponseEntity.ok(Map.of("token", token, "user", user));
     }

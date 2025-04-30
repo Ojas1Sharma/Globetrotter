@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.Collections;
@@ -18,8 +19,11 @@ public class UserServiceImpl implements UserService {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private BCryptPasswordEncoder passwordEncoder;
+
     @Override
-    public User registerUser(String username, String email) {
+    public User registerUser(String username, String email, String password) {
         if (userRepository.existsByUsername(username)) {
             throw new RuntimeException("Username already exists");
         }
@@ -30,6 +34,7 @@ public class UserServiceImpl implements UserService {
         User user = new User();
         user.setUsername(username);
         user.setEmail(email);
+        user.setPassword(passwordEncoder.encode(password));
         user.setInviteCode(UUID.randomUUID().toString());
         return userRepository.save(user);
     }
@@ -66,7 +71,7 @@ public class UserServiceImpl implements UserService {
         
         return new org.springframework.security.core.userdetails.User(
             user.getUsername(),
-            "", // No password for now
+            user.getPassword(),
             Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"))
         );
     }

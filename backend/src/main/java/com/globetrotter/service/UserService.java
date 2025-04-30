@@ -5,7 +5,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 
 public interface UserService extends UserDetailsService {
-    User registerUser(String username, String email);
+    User registerUser(String username, String email, String password);
     User getUserByUsername(String username);
     User getUserByInviteCode(String inviteCode);
     boolean isUsernameAvailable(String username);

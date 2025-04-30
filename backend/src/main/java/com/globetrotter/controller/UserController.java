@@ -25,8 +25,11 @@ public class UserController {
 
     @PostMapping("/register")
     @Operation(summary = "Register a new user")
-    public ResponseEntity<User> registerUser(@RequestParam String username, @RequestParam String email) {
-        return ResponseEntity.ok(userService.registerUser(username, email));
+    public ResponseEntity<User> registerUser(
+            @RequestParam String username, 
+            @RequestParam String email,
+            @RequestParam String password) {
+        return ResponseEntity.ok(userService.registerUser(username, email, password));
     }
 
     @GetMapping("/{username}")
