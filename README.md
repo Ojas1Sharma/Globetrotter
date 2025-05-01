@@ -18,6 +18,7 @@ A full-stack web application where users get cryptic clues about famous places a
 using its static ip for API calls, you need to change few settings on your browse---> go to site settings--> insecure content--> ALLOW . This will allow the http traffic that is required for api calls
     - http://34.93.167.53/  This will not require you to change any setting explicitly. In this case, I have packaged the react app to run through spring-boot. And then forced spring-boot application to run on port 80 so that it becomes accessible by browsers.
     -Ideal approach includes setting VPC in GCP followed by configuring a load balancer and deployment helper either jetkins or containerisation platform such as docker, followed by dns mapping. But due to time constraints, we are skipping it for now. 
+- Create a Challenge Button is not working on hosted website due to routes forwarding. Please find below the local setup instructions to enjoy full capabilities of the project.
 
 ## Tech Stack
 
@@ -40,7 +41,7 @@ using its static ip for API calls, you need to change few settings on your brows
 
 ### Prerequisites
 - Java 17 or higher
-- MySQL 8.0 or higher
+- MySQL 8.0 or higher 
 - Maven
 - Node.js and npm (for frontend)
 
