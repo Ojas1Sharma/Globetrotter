@@ -11,6 +11,14 @@ A full-stack web application where users get cryptic clues about famous places a
 - 🎉 Animated feedback and fun facts
 - 📱 Responsive design for all devices
 
+## Hosting
+- The project's backend is deployed over gcp.
+- There are 2 ways to access the project
+    - https://globetrotter.ojassharma.in/   This has frontend (react app) hosted on vercel and backend over gcp. Domain name has also been attached. But since it calls gcp instance
+using its static ip for API calls, you need to change few settings on your browse---> go to site settings--> insecure content--> ALLOW . This will allow the http traffic that is required for api calls
+    - http://34.93.167.53/  This will not require you to change any setting explicitly. In this case, I have packaged the react app to run through spring-boot. And then forced spring-boot application to run on port 80 so that it becomes accessible by browsers.
+    -Ideal approach includes setting VPC in GCP followed by configuring a load balancer and deployment helper either jetkins or containerisation platform such as docker, followed by dns mapping. But due to time constraints, we are skipping it for now. 
+
 ## Tech Stack
 
 ### Backend
