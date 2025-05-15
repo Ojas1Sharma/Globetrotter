@@ -1,10 +1,10 @@
 package com.globetrotter.service;
 
 import com.globetrotter.dto.ChallengeResponse;
-import com.globetrotter.model.Challenge;
+import com.globetrotter.dto.ChallengeDetailDTO;
 
 public interface ChallengeService {
     ChallengeResponse createChallenge(String username);
-    Challenge getChallengeByInviteCode(String inviteCode);
+    ChallengeDetailDTO getChallengeByInviteCode(String inviteCode);
     boolean isValidInviteCode(String inviteCode);
 } 

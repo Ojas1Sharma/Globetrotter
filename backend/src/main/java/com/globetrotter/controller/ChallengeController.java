@@ -1,7 +1,7 @@
 package com.globetrotter.controller;
 
 import com.globetrotter.dto.ChallengeResponse;
-import com.globetrotter.model.Challenge;
+import com.globetrotter.dto.ChallengeDetailDTO;
 import com.globetrotter.service.ChallengeService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -35,9 +35,9 @@ public class ChallengeController {
 
     @GetMapping("/{inviteCode}")
     @Operation(summary = "Get challenge by invite code")
-    public ResponseEntity<Challenge> getChallenge(@PathVariable String inviteCode) {
+    public ResponseEntity<ChallengeDetailDTO> getChallenge(@PathVariable String inviteCode) {
         logger.info("Fetching challenge for invite code: {}", inviteCode);
-        Challenge challenge = challengeService.getChallengeByInviteCode(inviteCode);
+        ChallengeDetailDTO challenge = challengeService.getChallengeByInviteCode(inviteCode);
         logger.info("Challenge found: {}", challenge);
         return ResponseEntity.ok(challenge);
     }
